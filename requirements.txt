@@ -1,0 +1,4 @@
+# Core dependencies for Phase 1: Local MVP
+requests>=2.31.0
+psycopg2-binary>=2.9.7
+python-dotenv>=1.0.0

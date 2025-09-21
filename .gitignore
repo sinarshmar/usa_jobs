@@ -1,2 +1,12 @@
-.vscode
-.kiro
+# Python
+__pycache__/
+*.pyc
+
+.env
+
+.venv/
+.kiro/
+.vscode/
+requirements/
+
+

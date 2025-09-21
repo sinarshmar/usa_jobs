@@ -1,0 +1,28 @@
+# Git
+.git/
+.gitignore
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Development files
+docker-compose.yml
+init_scripts/
+requirements/
+
+# Documentation
+README.md
+.kiro/
+
+# Environment files (use Cloud Run env vars instead)
+.env
+.env.example
