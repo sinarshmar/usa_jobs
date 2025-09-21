@@ -6,7 +6,7 @@ services:
     container_name: usa_jobs_db
     environment:
       POSTGRES_DB: usa_jobs
-      POSTGRES_USER: postgres
+      POSTGRES_USER: postgrese
       POSTGRES_PASSWORD: password
       # Optional: create additional user
       # POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
@@ -15,8 +15,6 @@ services:
     volumes:
       # Persist data even when container is removed
       - postgres_data:/var/lib/postgresql/data
-      # Optional: Mount initialization scripts
-      - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
       - postgres_network
     restart: unless-stopped
@@ -44,7 +42,6 @@ services:
 
 volumes:
   postgres_data:
-  pgadmin_data:
 
 networks:
   postgres_network:

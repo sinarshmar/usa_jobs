@@ -9,4 +9,5 @@ __pycache__/
 .vscode/
 requirements/
 
-
+test.ipynb
+test_etl.py

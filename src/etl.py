@@ -27,7 +27,6 @@ class USAJobsETL:
         self.api_key = os.environ.get('USAJOBS_API_KEY')
         self.database_url = os.environ.get('DATABASE_URL')
         self.api_base_url = os.environ.get('USAJOBS_API_URL')
-        self.api_host = os.environ.get('USAJOBS_HOST', 'data.usajobs.gov')
         self.default_location = os.environ.get('DEFAULT_LOCATION')
         self.keyword = os.environ.get('KEYWORD')
         
@@ -39,7 +38,6 @@ class USAJobsETL:
     def fetch_jobs_from_api(self, page: int = 1) -> Optional[Dict]:
         """Fetch jobs from USAJobs API"""
         headers = {
-            'Host': 'data.usajobs.gov',
             'Authorization-Key': self.api_key
         }
         
@@ -50,16 +48,29 @@ class USAJobsETL:
             'Page': page
         }
         
-        url = 'https://data.usajobs.gov/api/search'
-        
         try:
             logger.info(f"Fetching page {page} for keyword: {self.keyword}")
-            response = requests.get(url, headers=headers, params=params, timeout=30)
+            response = requests.get(self.api_base_url, headers=headers, params=params, timeout=30)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"API Error: {e}")
             return None
+
+    def fetch_jobs_from_api_with_retry(self, page: int = 1, max_retries: int = 3) -> Optional[Dict]:
+        """Fetch with exponential backoff"""
+        for attempt in range(max_retries):
+            try:
+                response = self.fetch_jobs_from_api(page)
+                if response:
+                    return response
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise
+                wait_time = 2 ** attempt
+                logger.warning(f"Retry {attempt + 1} after {wait_time}s")
+                time.sleep(wait_time)
+    return None
     
     def parse_job_listing(self, job_item: Dict) -> Optional[Dict]:
         """Parse single job from API response"""
@@ -231,7 +242,7 @@ class USAJobsETL:
             total_jobs = 0
             
             while True:
-                api_response = self.fetch_jobs_from_api(page=page)
+                api_response = self.fetch_jobs_from_api_with_retry(page=page)
                 if not api_response:
                     break
                 
