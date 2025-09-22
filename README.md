@@ -157,7 +157,7 @@ See `init_scripts/init.sql` for complete schema definition and indexes.
 
 ## 🧪 Testing
 
-The project includes comprehensive tests covering unit, integration, and database operations:
+_Note: The test suite was generated with Claude code._
 
 ```bash
 # Run all tests
@@ -174,8 +174,6 @@ pytest tests/ -v
 - ✅ **Database schema and operations**
 - ✅ **End-to-end integration testing**
 - ✅ **Error handling and edge cases**
-
-_Note: Comprehensive test suite was generated with Claude code._
 
 ## 🏛️ Design Decisions
 
