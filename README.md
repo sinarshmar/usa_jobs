@@ -85,21 +85,15 @@ Terraform → Secret Manager → Cloud Run Jobs → Supabase → Cloud Scheduler
 
 **Why different approaches for local vs production?**
 
-| Aspect         | Local Development               | Production               |
-| -------------- | ------------------------------- | ------------------------ |
-| **Secrets**    | `.env` file (excluded from git) | Google Secret Manager    |
-| **Database**   | Docker container                | Managed Supabase         |
-| **Deployment** | Manual `python` command         | Automated Cloud Run Jobs |
-| **Scheduling** | Manual execution                | Cloud Scheduler (daily)  |
-| **Security**   | Developer responsibility        | IAM + Secret Manager     |
+| Aspect       | Local Development               | Production            |
+| ------------ | ------------------------------- | --------------------- |
+| **Secrets**  | `.env` file (excluded from git) | Google Secret Manager |
+| **Database** | Docker container                | Managed Supabase      |
 
 **Benefits of this architecture:**
 
 - ✅ **Security**: No secrets in containers or environment variables
 - ✅ **Auditability**: All secret access logged by Google Cloud
-- ✅ **Scalability**: Cloud Run scales automatically
-- ✅ **Reliability**: Managed services with SLA guarantees
-- ✅ **Cost**: Pay-per-execution model
 
 ### Project Structure
 
@@ -181,27 +175,7 @@ pytest tests/ -v
 - ✅ **End-to-end integration testing**
 - ✅ **Error handling and edge cases**
 
-_Note: Comprehensive test suite was generated with Claude AI assistance with minimal manual intervention._
-
-## Development Notes
-
-### Current Implementation Features
-
-- ✅ Environment-driven configuration via .env files
-- ✅ Comprehensive error handling with exponential backoff retry logic
-- ✅ Multi-page pagination support (configurable page limits)
-- ✅ Structured logging with configurable levels
-- ✅ Comprehensive test suite (unit, integration, database)
-- ✅ Production cloud deployment with Terraform
-- ✅ Rate limiting and respectful API usage
-- ✅ Database schema with proper indexing
-
-### Areas for Future Enhancement
-
-- Modular architecture with separate classes for API, database, and transformation logic
-- Parallel processing for large datasets
-- Data quality validation and monitoring
-- Incremental ETL with change detection
+_Note: Comprehensive test suite was generated with Claude code._
 
 ## 🏛️ Design Decisions
 
@@ -227,6 +201,24 @@ _Note: Comprehensive test suite was generated with Claude AI assistance with min
 - Pagination limited to 5 pages (analysis showed only 22 total results)
 - Parallel processing prepared but disabled (ENABLE_PARALLEL=false)
 - Ready to scale with larger datasets when needed
+
+## Development Notes
+
+### Current Implementation Features
+
+- ✅ Environment-driven configuration via .env files
+- ✅ Comprehensive error handling with exponential backoff retry logic
+- ✅ Multi-page pagination support (configurable page limits)
+- ✅ Comprehensive test suite (unit, integration, database)
+- ✅ Production cloud deployment with Terraform
+- ✅ Rate limiting and respectful API usage
+- ✅ Database schema with proper indexing
+
+### Areas for Future Enhancement
+
+- Parallel processing for large datasets
+- Data quality validation and monitoring
+- Incremental ETL with change detection
 
 ## License
 
