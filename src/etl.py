@@ -16,16 +16,22 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Configure logging
+# Configure logging first
 logging.basicConfig(
     level=os.environ.get('LOG_LEVEL', 'INFO'),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
+
+# Load environment variables from .env file (for local development only)
+# In production (Cloud Run), secrets come from Google Secret Manager
+try:
+    load_dotenv()
+    logger.info("Local .env file loaded for development")
+except Exception:
+    # In production, .env file won't exist and secrets come from Secret Manager
+    logger.info("Running in production mode - using environment variables from Secret Manager")
 
 
 class Config:

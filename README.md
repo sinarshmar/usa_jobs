@@ -1,59 +1,98 @@
 # USAJobs ETL Pipeline
 
-A phased ETL pipeline implementation for the Tasman Senior Data Engineer Assessment. This project extracts job postings from the USAJobs API, transforms the data, and loads it into a PostgreSQL database.
+Production-ready ETL pipeline that extracts data engineering jobs from USAJobs API and loads them into PostgreSQL. Features automated cloud deployment with Secret Manager security and daily scheduling.
 
-## Project Overview
+## 🚀 Quick Start
 
-This implementation follows a phased development approach:
+### Local Development
 
-- **Phase 1: Local MVP** (Current) - Basic ETL functionality with local database
-- **Phase 2: Production Hardening** - Error handling and modular architecture
-- **Phase 3: Containerization** - Docker packaging
-- **Phase 4: Cloud Deployment** - Infrastructure as Code and cloud setup
-- **Phase 5: Testing & Documentation** - Comprehensive testing and docs
+```bash
+# 1. Clone and setup
+git clone <repository-url>
+cd USA_jobs
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 
-## Phase 1: Local MVP
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your USAJobs API key and database URL
 
-### Prerequisites
+# 3. Start local database
+docker-compose up -d
 
+# 4. Run ETL
+python src/etl.py
+```
+
+### Cloud Deployment (GCP)
+
+```bash
+# Prerequisites: gcloud CLI, Terraform, Docker
+# 1. Configure GCP
+gcloud auth login
+gcloud auth application-default login
+
+# 2. Update configuration
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your project details
+
+# 3. Deploy
+terraform init
+terraform apply
+```
+
+## 📋 Prerequisites
+
+**Local Development:**
 - Python 3.11+
 - Docker and Docker Compose
-- USAJobs API key
+- USAJobs API key ([Get one here](https://developer.usajobs.gov/APIRequest))
 
-### Quick Start
+**Cloud Deployment:**
+- Google Cloud CLI (`gcloud`)
+- Terraform
+- Docker
+- GCP Project with billing enabled
 
-1. **Clone and setup**:
+## 🏗️ Architecture
 
-   ```bash
-   git clone <repository-url>
-   cd USA_jobs
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
+### Local Development
+```
+.env file → Python ETL → PostgreSQL (Docker)
+```
+- Configuration via `.env` file
+- Local PostgreSQL via `docker-compose`
+- Direct environment variable access
 
-2. **Start local database**:
+### Production Deployment
+```
+Terraform → Secret Manager → Cloud Run Jobs → Supabase → Cloud Scheduler
+```
+- **No `.env` files** - secrets managed by Google Secret Manager
+- **Infrastructure as Code** - Terraform manages all resources
+- **Automated scheduling** - Cloud Scheduler triggers daily runs
+- **Enterprise security** - IAM roles and secret access controls
 
-   ```bash
-   docker-compose up -d
-   ```
+## 🔐 Production Security Model
 
-3. **Set API key**:
+**Why different approaches for local vs production?**
 
-   ```bash
-   export USAJOBS_API_KEY="your-api-key-here"
-   ```
+| Aspect | Local Development | Production |
+|--------|------------------|------------|
+| **Secrets** | `.env` file (excluded from git) | Google Secret Manager |
+| **Database** | Docker container | Managed Supabase |
+| **Deployment** | Manual `python` command | Automated Cloud Run Jobs |
+| **Scheduling** | Manual execution | Cloud Scheduler (daily) |
+| **Security** | Developer responsibility | IAM + Secret Manager |
 
-4. **Run ETL process**:
-
-   ```bash
-   python src/etl.py
-   ```
-
-5. **Verify results**:
-   ```bash
-   docker-compose exec postgres psql -U user -d jobs -c "SELECT COUNT(*) FROM job_listings;"
-   ```
+**Benefits of this architecture:**
+- ✅ **Security**: No secrets in containers or environment variables
+- ✅ **Auditability**: All secret access logged by Google Cloud
+- ✅ **Scalability**: Cloud Run scales automatically
+- ✅ **Reliability**: Managed services with SLA guarantees
+- ✅ **Cost**: Pay-per-execution model
 
 ### Project Structure
 
@@ -99,23 +138,79 @@ The `job_listings` table includes:
 - `created_at` (TIMESTAMP)
 - `etl_timestamp` (TIMESTAMP)
 
+## 🧪 Testing
+
+The project includes comprehensive tests covering unit, integration, and database operations:
+
+```bash
+# Run all tests
+python run_tests.py
+
+# Or use pytest directly
+pytest tests/ -v
+```
+
+**Test Coverage:**
+- ✅ **Configuration loading and validation**
+- ✅ **API response parsing and data transformation**
+- ✅ **Database schema and operations**
+- ✅ **End-to-end integration testing**
+- ✅ **Error handling and edge cases**
+
+## 🚀 Deployment Guide
+
+### Local Development Setup
+```bash
+# 1. Clone repository
+git clone <repo-url>
+cd USA_jobs
+
+# 2. Python environment
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# 3. Database
+docker-compose up -d
+
+# 4. Configuration
+cp .env.example .env
+# Add your USAJobs API key to .env
+
+# 5. Run & Test
+python src/etl.py
+python run_tests.py
+```
+
+### Production Deployment
+```bash
+# 1. Prerequisites
+gcloud auth login
+gcloud auth application-default login
+
+# 2. Configure project
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit with your GCP project details
+
+# 3. Deploy infrastructure
+terraform init
+terraform apply
+
+# 4. Verify deployment
+gcloud run jobs execute usajobs-etl --region=europe-west2
+```
+
 ### Troubleshooting
 
-**Database connection issues**:
+**Local Issues:**
+- Database: `docker-compose logs postgres`
+- API: `curl -H "Authorization-Key: $API_KEY" "https://data.usajobs.gov/api/search?Keyword=data%20engineering"`
 
-- Ensure Docker is running: `docker ps`
-- Check PostgreSQL logs: `docker-compose logs postgres`
-
-**API connection issues**:
-
-- Verify API key is set: `echo $USAJOBS_API_KEY`
-- Test API manually: `curl -H "Authorization-Key: $USAJOBS_API_KEY" "https://data.usajobs.gov/api/search?Keyword=data%20engineering"`
-
-**No data inserted**:
-
-- Check console output for errors
-- Verify API response format hasn't changed
-- Check database table exists: `docker-compose exec postgres psql -U user -d jobs -c "\dt"`
+**Production Issues:**
+- Logs: `gcloud logging read 'resource.type=cloud_run_job'`
+- Job status: `gcloud run jobs executions list --job=usajobs-etl --region=europe-west2`
+- Secrets: `gcloud secrets list`
 
 ## Development Notes
 

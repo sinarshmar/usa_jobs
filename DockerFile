@@ -13,5 +13,9 @@ COPY init_scripts/ ./init_scripts/
 # Set Python to unbuffered mode for proper logging
 ENV PYTHONUNBUFFERED=1
 
+# Note: .env file is NOT copied to container for security
+# Secrets are managed by Google Secret Manager in production
+# For local development, mount .env as a volume or use environment variables
+
 # Run the ETL
 CMD ["python", "src/etl.py"]

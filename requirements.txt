@@ -1,4 +1,8 @@
-# Core dependencies for Phase 1: Local MVP
+# Core dependencies for USAJobs ETL
 requests>=2.31.0
 psycopg2-binary>=2.9.7
 python-dotenv>=1.0.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-mock>=3.11.0

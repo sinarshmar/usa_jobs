@@ -1,0 +1,41 @@
+# terraform.tfvars.example
+# Copy this to terraform.tfvars and update with your actual values
+# NEVER commit terraform.tfvars with real values to version control
+
+# GCP Configuration
+gcp_project_id = "ingestion-poc-472904"  # Your GCP project ID
+gcp_region     = "europe-west2"          # Your deployment region (London)
+
+# Docker Image in Artifact Registry
+# Format: REGION-docker.pkg.dev/PROJECT_ID/REPOSITORY/IMAGE:TAG
+docker_image = "europe-west2-docker.pkg.dev/ingestion-poc-472904/usajobs-etl-repo/usajobs-etl:amd64"
+
+# Database Configuration - Supabase
+# IMPORTANT: Replace with your actual Supabase connection string
+# Note: Special characters in password may need URL encoding
+database_url = "postgresql://postgres.YOUR_PROJECT_REF:YOUR_PASSWORD@aws-1-eu-west-2.pooler.supabase.com:5432/postgres?sslmode=require"
+
+# API Configuration
+# Your USAJobs API key
+usajobs_api_key = "your-usajobs-api-key-here"
+
+# ETL Configuration (these match your deployment)
+default_location  = "Chicago"
+keyword          = "data engineering"
+log_level        = "INFO"
+
+# Performance Tuning (matching your deployment)
+max_pages         = 10
+batch_commit_size = 100
+enable_parallel   = "false"
+max_workers       = 1
+
+# Cloud Run Resources (matching your deployment)
+cpu_limit    = "1"
+memory_limit = "1Gi"      # You used 1Gi instead of 512Mi
+job_timeout  = "900s"     # 15 minutes
+job_max_retries = 1
+
+# Schedule Configuration
+schedule_cron     = "0 6 * * *"        # Daily at 6 AM
+schedule_timezone = "Europe/London"     # Adjusted for your region
