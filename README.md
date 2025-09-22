@@ -143,13 +143,6 @@ Key environment variables:
 
 See `.env.example` for complete configuration options.
 
-### API Information
-
-- **Endpoint**: https://data.usajobs.gov/api/search
-- **Authentication**: Header "Authorization-Key: {api_key}"
-- **Search**: Keyword "data engineering"
-- **Documentation**: https://developer.usajobs.gov/
-
 ### Database Schema
 
 The pipeline creates two main tables:
@@ -190,19 +183,6 @@ pytest tests/ -v
 
 _Note: Comprehensive test suite was generated with Claude AI assistance with minimal manual intervention._
 
-### Troubleshooting
-
-**Local Issues:**
-
-- Database: `docker-compose logs postgres`
-- API: `curl -H "Authorization-Key: $API_KEY" "https://data.usajobs.gov/api/search?Keyword=data%20engineering"`
-
-**Production Issues:**
-
-- Logs: `gcloud logging read 'resource.type=cloud_run_job'`
-- Job status: `gcloud run jobs executions list --job=usajobs-etl --region=europe-west2`
-- Secrets: `gcloud secrets list`
-
 ## Development Notes
 
 ### Current Implementation Features
@@ -236,7 +216,6 @@ _Note: Comprehensive test suite was generated with Claude AI assistance with min
 
 - **Local**: PostgreSQL via Docker Compose
 - **Production**: Supabase free tier (no GCP costs)
-- **No connection pooling** - Single daily batch job doesn't require it
 
 ### Security Model
 
