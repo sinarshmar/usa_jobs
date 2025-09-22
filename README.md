@@ -1,6 +1,6 @@
 # USAJobs ETL Pipeline
 
-Production-ready ETL pipeline that extracts data engineering jobs from USAJobs API and loads them into PostgreSQL. Features automated cloud deployment with Secret Manager security and daily scheduling.
+Production-ready ETL pipeline that extracts data engineering jobs from USAJobs API and loads them into PostgreSQL.
 
 ## 🚀 Quick Start
 
