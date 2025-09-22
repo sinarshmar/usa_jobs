@@ -16,7 +16,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
-# Configure logging first
 logging.basicConfig(
     level=os.environ.get('LOG_LEVEL', 'INFO'),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -24,35 +23,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Load environment variables from .env file (for local development only)
-# In production (Cloud Run), secrets come from Google Secret Manager
 try:
     load_dotenv()
     logger.info("Local .env file loaded for development")
 except Exception:
-    # In production, .env file won't exist and secrets come from Secret Manager
     logger.info("Running in production mode - using environment variables from Secret Manager")
 
 
 class Config:
     """Configuration constants for ETL pipeline"""
-    # API Settings - now from environment
     DEFAULT_PAGE_SIZE = int(os.environ.get('DEFAULT_PAGE_SIZE', 100))
     MAX_PAGES = int(os.environ.get('MAX_PAGES', 10))
     MAX_RETRIES = int(os.environ.get('MAX_RETRIES', 3))
     
-    # Exponential backoff settings
     INITIAL_RETRY_DELAY = float(os.environ.get('INITIAL_RETRY_DELAY', 1))
     MAX_RETRY_DELAY = float(os.environ.get('MAX_RETRY_DELAY', 60))
     
-    # Database settings
     BATCH_COMMIT_SIZE = int(os.environ.get('BATCH_COMMIT_SIZE', 100))
     
-    # Rate limiting
     REQUEST_TIMEOUT = int(os.environ.get('REQUEST_TIMEOUT', 30))
     MIN_REQUEST_INTERVAL = float(os.environ.get('MIN_REQUEST_INTERVAL', 0.5))
     
-    # Feature flags
     DRY_RUN_MODE = os.environ.get('DRY_RUN_MODE', 'false').lower() == 'true'
 
 class USAJobsETL:
@@ -64,22 +55,18 @@ class USAJobsETL:
         self.default_location = os.environ.get('DEFAULT_LOCATION', 'Chicago')
         self.keyword = os.environ.get('KEYWORD', 'data engineering')
         
-        # Validate required configuration
         if not self.api_key:
             raise ValueError("USAJOBS_API_KEY environment variable required")
         if not self.database_url:
             raise ValueError("DATABASE_URL environment variable required")
         
-        # Security: Validate API key format (basic check)
         if self.api_key and len(self.api_key) < 20:
             logger.warning("API key format appears invalid - please verify")
         
-        # Security: Log configuration without exposing secrets
         if self.api_key:
             masked_key = self.api_key[:4] + '...' + self.api_key[-4:] if len(self.api_key) > 8 else 'HIDDEN'
             logger.info(f"Configuration loaded - API key: {masked_key}")
         
-        # Log non-sensitive configuration
         logger.info(f"Target location: {self.default_location}, Keyword: {self.keyword}")
     
     def fetch_jobs_from_api_with_retry(self, page: int = 1, max_retries: int = None) -> Optional[Dict]:
@@ -108,7 +95,7 @@ class USAJobsETL:
                     timeout=Config.REQUEST_TIMEOUT
                 )
                 
-                if response.status_code == 429:  # Rate limited
+                if response.status_code == 429:
                     wait_time = min(Config.INITIAL_RETRY_DELAY * (2 ** attempt), Config.MAX_RETRY_DELAY)
                     logger.warning(f"Rate limited. Retry {attempt + 1} after {wait_time}s")
                     time.sleep(wait_time)
@@ -116,7 +103,6 @@ class USAJobsETL:
                     
                 response.raise_for_status()
                 
-                # Add small delay between successful requests to be respectful
                 time.sleep(Config.MIN_REQUEST_INTERVAL)
                 return response.json()
                 
@@ -138,12 +124,10 @@ class USAJobsETL:
         try:
             descriptor = job_item.get('MatchedObjectDescriptor', {})
             
-            # Extract all locations
             locations = descriptor.get('PositionLocation', [])
             if not locations:
                 return None
             
-            # Check if Chicago is among the locations
             chicago_location = None
             has_chicago = False
             
@@ -156,25 +140,20 @@ class USAJobsETL:
                     chicago_location = loc
                     break
             
-            # Skip jobs that don't include Chicago
             if not has_chicago:
                 logger.debug(f"Skipping non-Chicago job {job_item.get('MatchedObjectId')} - {descriptor.get('PositionTitle')}")
                 return None
             
-            # If no specific Chicago location found but has Chicago, use first location
             if not chicago_location and locations:
                 chicago_location = locations[0]
             
-            # Check if this is a nationwide/multi-location posting
             location_display = descriptor.get('PositionLocationDisplay', '')
             is_multi_location = len(locations) > 1
             is_nationwide = 'various' in location_display.lower() or len(locations) > 10
             
-            # Log multi-location jobs for transparency
             if is_multi_location:
                 logger.debug(f"Job {job_item.get('MatchedObjectId')} has {len(locations)} locations including Chicago")
             
-            # Extract salary info (PA = Per Annum)
             remunerations = descriptor.get('PositionRemuneration', [])
             first_remuneration = remunerations[0] if remunerations else {}
             
@@ -187,11 +166,9 @@ class USAJobsETL:
                 except (ValueError, TypeError):
                     pass
             
-            # Parse dates safely
             def parse_date(date_str):
                 if date_str:
                     try:
-                        # Handle USAJobs datetime format
                         return date_str.split('T')[0] if 'T' in date_str else date_str
                     except:
                         return None
@@ -283,7 +260,6 @@ class USAJobsETL:
         """Initialize database using init.sql if tables don't exist"""
         init_sql_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'init_scripts', 'init.sql')
 
-        # If running in container, check alternative path
         if not os.path.exists(init_sql_path):
             init_sql_path = '/app/init_scripts/init.sql'
         
@@ -341,7 +317,6 @@ class USAJobsETL:
         }
         
         try:
-            # Connect to database
             logger.info("="*60)
             logger.info("Starting USAJobs ETL Process")
             logger.info(f"Configuration: Keyword='{self.keyword}', Location='{self.default_location}'")
@@ -351,18 +326,16 @@ class USAJobsETL:
             conn = psycopg2.connect(self.database_url)
             conn.autocommit = False
 
-            # Initialize database if needed
             if not self.check_tables_exist(conn):
                 logger.info("Required tables not found, initializing database...")
                 self.initialize_database(conn)
             else:
                 logger.info("Database tables verified, proceeding with ETL...")
             
-            # Fetch all pages (analysis shows only 22 total results)
             page = 1
             total_jobs = 0
             chicago_jobs = 0
-            max_pages = 5  # Reasonable limit based on analysis
+            max_pages = 5
             
             while page <= max_pages:
                 api_response = self.fetch_jobs_from_api_with_retry(page=page)
@@ -380,7 +353,6 @@ class USAJobsETL:
                 
                 logger.info(f"Page {page}: Processing {len(items)} jobs (Total available: {total_available})")
                 
-                # Process each job
                 for item in items:
                     stats['processed'] += 1
                     job_data = self.parse_job_listing(item)
@@ -400,22 +372,18 @@ class USAJobsETL:
                         stats['failed'] += 1
                         logger.warning("Skipped job due to missing position_id")
                 
-                # Commit after each page
                 conn.commit()
                 total_jobs += len(items)
                 
-                # Check if we've fetched all available jobs
                 if total_jobs >= total_available:
                     logger.info(f"Fetched all {total_available} available jobs")
                     break
                 
                 page += 1
             
-            # Log successful run
             self.log_etl_run(conn, 'SUCCESS', stats)
             conn.commit()
             
-            # Final summary
             logger.info("="*60)
             logger.info("ETL COMPLETED SUCCESSFULLY")
             logger.info(f"Total jobs processed: {stats['processed']}")

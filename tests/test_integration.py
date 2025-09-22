@@ -17,10 +17,9 @@ class TestETLIntegration:
 
     def test_etl_script_runs_without_errors(self):
         """Test that the ETL script can be executed without Python errors"""
-        # Test with minimal environment
         env = os.environ.copy()
-        env['DRY_RUN_MODE'] = 'true'  # If this env var exists in your ETL
-        env['MAX_PAGES'] = '1'        # Limit to reduce API calls during testing
+        env['DRY_RUN_MODE'] = 'true'
+        env['MAX_PAGES'] = '1'
 
         script_path = os.path.join(os.path.dirname(__file__), '..', 'src', 'etl.py')
 
@@ -30,10 +29,9 @@ class TestETLIntegration:
                 env=env,
                 capture_output=True,
                 text=True,
-                timeout=30  # 30 second timeout
+                timeout=30
             )
 
-            # Should not have syntax errors or import errors
             assert "Traceback" not in result.stderr, f"Python error in ETL script: {result.stderr}"
             assert result.returncode in [0, 1], f"Unexpected return code: {result.returncode}"
 
@@ -56,21 +54,18 @@ class TestETLIntegration:
 
         script_path = os.path.join(os.path.dirname(__file__), '..', 'src', 'etl.py')
 
-        # Create temporary env file for test
         with tempfile.NamedTemporaryFile(mode='w', suffix='.env', delete=False) as f:
             for key, value in test_env.items():
                 f.write(f"{key}={value}\n")
             temp_env_file = f.name
 
         try:
-            # Copy the temp env file to .env in the project root
             project_root = os.path.join(os.path.dirname(__file__), '..')
             temp_project_env = os.path.join(project_root, '.env.test')
 
             with open(temp_env_file, 'r') as src, open(temp_project_env, 'w') as dst:
                 dst.write(src.read())
 
-            # Run ETL script with test environment
             env = os.environ.copy()
             env.update(test_env)
 
@@ -82,11 +77,9 @@ class TestETLIntegration:
                 timeout=15
             )
 
-            # Clean up
             if os.path.exists(temp_project_env):
                 os.remove(temp_project_env)
 
-            # Should load configuration without errors
             assert "Configuration loaded" in result.stdout or result.returncode in [0, 1]
 
         except subprocess.TimeoutExpired:
@@ -94,7 +87,6 @@ class TestETLIntegration:
         except FileNotFoundError:
             pytest.skip("ETL script not found")
         finally:
-            # Clean up temp files
             if os.path.exists(temp_env_file):
                 os.remove(temp_env_file)
 
@@ -104,11 +96,9 @@ class TestETLIntegration:
             pytest.skip("No test database URL provided")
 
         try:
-            # Check if we can connect to database
             conn = psycopg2.connect(test_database_url)
             cursor = conn.cursor()
 
-            # Check if job_listings table exists
             cursor.execute("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
@@ -122,7 +112,6 @@ class TestETLIntegration:
             if not table_exists:
                 pytest.skip("job_listings table not found - run ETL first to create schema")
 
-            # If we get here, schema exists and is testable
             assert table_exists
 
         except psycopg2.OperationalError:
@@ -148,10 +137,7 @@ class TestConfigurationValidation:
                 timeout=10
             )
 
-            # Should either fail gracefully or skip execution
-            # Should not crash with unhandled exceptions
             if "Traceback" in result.stderr:
-                # If there is a traceback, it should be about missing config, not syntax
                 assert any(keyword in result.stderr.lower() for keyword in
                           ['key', 'database', 'environment', 'config'])
 
@@ -162,7 +148,6 @@ class TestConfigurationValidation:
 
     def test_environment_variable_loading(self):
         """Test that .env file is loaded correctly"""
-        # This tests the dotenv functionality
         from dotenv import load_dotenv
         import tempfile
 
@@ -177,11 +162,9 @@ KEYWORD=test keyword
             temp_env_file = f.name
 
         try:
-            # Test loading the env file
             result = load_dotenv(temp_env_file)
             assert result is True
 
-            # Clean up
             os.remove(temp_env_file)
 
         except Exception as e:

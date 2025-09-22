@@ -8,7 +8,6 @@ import psycopg2
 from unittest.mock import Mock
 from dotenv import load_dotenv
 
-# Load test environment
 load_dotenv()
 
 @pytest.fixture

@@ -33,7 +33,6 @@ class TestDatabaseSchema:
             conn = psycopg2.connect(test_database_url)
             cursor = conn.cursor()
 
-            # Check if table exists and get column info
             cursor.execute("""
                 SELECT column_name, data_type, is_nullable
                 FROM information_schema.columns
@@ -47,7 +46,6 @@ class TestDatabaseSchema:
             if not columns:
                 pytest.skip("job_listings table doesn't exist - run ETL first")
 
-            # Expected columns
             expected_columns = {
                 'position_id': 'character varying',
                 'position_title': 'character varying',
@@ -60,7 +58,6 @@ class TestDatabaseSchema:
 
             for col_name, expected_type in expected_columns.items():
                 assert col_name in column_dict, f"Column {col_name} missing from schema"
-                # Note: PostgreSQL type names might vary, so we check contains
                 assert expected_type in column_dict[col_name] or col_name in column_dict
 
         except psycopg2.OperationalError:
@@ -80,7 +77,6 @@ class TestDataOperations:
             conn = psycopg2.connect(test_database_url)
             cursor = conn.cursor()
 
-            # Test insert query (this assumes table exists)
             insert_query = """
                 INSERT INTO job_listings (
                     position_id, position_title, position_uri,
@@ -105,12 +101,10 @@ class TestDataOperations:
             cursor.execute(insert_query, test_data)
             conn.commit()
 
-            # Verify insert worked
             cursor.execute("SELECT COUNT(*) FROM job_listings WHERE position_id = %s", (sample_job["PositionID"],))
             count = cursor.fetchone()[0]
             assert count == 1
 
-            # Clean up test data
             cursor.execute("DELETE FROM job_listings WHERE position_id = %s", (sample_job["PositionID"],))
             conn.commit()
             conn.close()
@@ -129,7 +123,6 @@ class TestDataOperations:
             conn = psycopg2.connect(test_database_url)
             cursor = conn.cursor()
 
-            # Insert test record
             test_id = "TEST-UPSERT-001"
             insert_query = """
                 INSERT INTO job_listings (
@@ -141,26 +134,22 @@ class TestDataOperations:
                     etl_timestamp = EXCLUDED.etl_timestamp;
             """
 
-            # First insert
             cursor.execute(insert_query, (
                 test_id, "Original Title", "http://example.com",
                 json.dumps([{"city": "Chicago"}]), json.dumps([{"salary": "100k"}])
             ))
             conn.commit()
 
-            # Second insert (should update)
             cursor.execute(insert_query, (
                 test_id, "Updated Title", "http://example.com",
                 json.dumps([{"city": "Chicago"}]), json.dumps([{"salary": "100k"}])
             ))
             conn.commit()
 
-            # Verify only one record exists with updated title
             cursor.execute("SELECT position_title FROM job_listings WHERE position_id = %s", (test_id,))
             result = cursor.fetchone()
             assert result[0] == "Updated Title"
 
-            # Clean up
             cursor.execute("DELETE FROM job_listings WHERE position_id = %s", (test_id,))
             conn.commit()
             conn.close()

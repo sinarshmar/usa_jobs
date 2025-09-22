@@ -8,7 +8,7 @@ Production-ready ETL pipeline that extracts data engineering jobs from USAJobs A
 
 ```bash
 # 1. Clone and setup
-git clone <repository-url>
+git clone https://github.com/sinarshmar/usa_jobs
 cd USA_jobs
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
@@ -46,11 +46,13 @@ terraform apply
 ## 📋 Prerequisites
 
 **Local Development:**
+
 - Python 3.11+
 - Docker and Docker Compose
 - USAJobs API key ([Get one here](https://developer.usajobs.gov/APIRequest))
 
 **Cloud Deployment:**
+
 - Google Cloud CLI (`gcloud`)
 - Terraform
 - Docker
@@ -59,17 +61,21 @@ terraform apply
 ## 🏗️ Architecture
 
 ### Local Development
+
 ```
 .env file → Python ETL → PostgreSQL (Docker)
 ```
+
 - Configuration via `.env` file
 - Local PostgreSQL via `docker-compose`
 - Direct environment variable access
 
 ### Production Deployment
+
 ```
 Terraform → Secret Manager → Cloud Run Jobs → Supabase → Cloud Scheduler
 ```
+
 - **No `.env` files** - secrets managed by Google Secret Manager
 - **Infrastructure as Code** - Terraform manages all resources
 - **Automated scheduling** - Cloud Scheduler triggers daily runs
@@ -79,15 +85,16 @@ Terraform → Secret Manager → Cloud Run Jobs → Supabase → Cloud Scheduler
 
 **Why different approaches for local vs production?**
 
-| Aspect | Local Development | Production |
-|--------|------------------|------------|
-| **Secrets** | `.env` file (excluded from git) | Google Secret Manager |
-| **Database** | Docker container | Managed Supabase |
-| **Deployment** | Manual `python` command | Automated Cloud Run Jobs |
-| **Scheduling** | Manual execution | Cloud Scheduler (daily) |
-| **Security** | Developer responsibility | IAM + Secret Manager |
+| Aspect         | Local Development               | Production               |
+| -------------- | ------------------------------- | ------------------------ |
+| **Secrets**    | `.env` file (excluded from git) | Google Secret Manager    |
+| **Database**   | Docker container                | Managed Supabase         |
+| **Deployment** | Manual `python` command         | Automated Cloud Run Jobs |
+| **Scheduling** | Manual execution                | Cloud Scheduler (daily)  |
+| **Security**   | Developer responsibility        | IAM + Secret Manager     |
 
 **Benefits of this architecture:**
+
 - ✅ **Security**: No secrets in containers or environment variables
 - ✅ **Auditability**: All secret access logged by Google Cloud
 - ✅ **Scalability**: Cloud Run scales automatically
@@ -100,24 +107,41 @@ Terraform → Secret Manager → Cloud Run Jobs → Supabase → Cloud Scheduler
 USA_jobs/
 ├── src/
 │   ├── __init__.py
-│   └── etl.py                 # Main ETL script (Phase 1)
-├── sql/
-│   └── schema.sql             # Database schema
+│   └── etl.py                 # Main ETL script
+├── tests/                     # Comprehensive test suite
+│   ├── conftest.py
+│   ├── test_database.py
+│   ├── test_etl.py
+│   └── test_integration.py
+├── init_scripts/
+│   └── init.sql               # Database schema
+├── terraform/                 # Cloud infrastructure
+│   ├── main.tf
+│   ├── variables.tf
+│   └── terraform.tfvars.example
 ├── docker-compose.yml         # Local PostgreSQL setup
 ├── requirements.txt           # Python dependencies
-├── .gitignore                # Git ignore rules
 ├── .env.example              # Environment variables template
 └── README.md                 # This file
 ```
 
 ### Configuration
 
-Create a `.env` file or set environment variables:
+Create a `.env` file from the template:
 
 ```bash
-USAJOBS_API_KEY=your-api-key-here
-DATABASE_URL=postgresql://user:password@localhost:5432/jobs
+cp .env.example .env
 ```
+
+Key environment variables:
+
+- `USAJOBS_API_KEY` - Your USAJobs API key ([Get one here](https://developer.usajobs.gov/APIRequest))
+- `DATABASE_URL` - PostgreSQL connection string
+- `DEFAULT_LOCATION` - Target location (default: Chicago)
+- `KEYWORD` - Job search keyword (default: "data engineering")
+- `LOG_LEVEL` - Logging verbosity (INFO, DEBUG, etc.)
+
+See `.env.example` for complete configuration options.
 
 ### API Information
 
@@ -128,15 +152,21 @@ DATABASE_URL=postgresql://user:password@localhost:5432/jobs
 
 ### Database Schema
 
-The `job_listings` table includes:
+The pipeline creates two main tables:
 
-- `position_id` (VARCHAR, PRIMARY KEY)
-- `position_title` (VARCHAR, NOT NULL)
-- `position_uri` (VARCHAR)
-- `position_location` (JSONB)
-- `position_remuneration` (JSONB)
-- `created_at` (TIMESTAMP)
-- `etl_timestamp` (TIMESTAMP)
+**`job_listings`** - Stores job posting data with:
+
+- Core fields: position_id (PK), position_title, position_uri
+- Location data: position_location (JSONB), city_name, state_code
+- Organization: organization_name, department_name
+- Compensation: position_remuneration (JSONB), min_salary, max_salary
+- Dates: position_start_date, position_end_date, application_close_date
+- Job details: job_summary, job_category (JSONB), job_grade (JSONB)
+- Metadata: created_at, updated_at, etl_timestamp
+
+**`etl_runs`** - Tracks ETL execution metadata and statistics
+
+See `init_scripts/init.sql` for complete schema definition and indexes.
 
 ## 🧪 Testing
 
@@ -151,95 +181,73 @@ pytest tests/ -v
 ```
 
 **Test Coverage:**
+
 - ✅ **Configuration loading and validation**
 - ✅ **API response parsing and data transformation**
 - ✅ **Database schema and operations**
 - ✅ **End-to-end integration testing**
 - ✅ **Error handling and edge cases**
 
-## 🚀 Deployment Guide
-
-### Local Development Setup
-```bash
-# 1. Clone repository
-git clone <repo-url>
-cd USA_jobs
-
-# 2. Python environment
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# 3. Database
-docker-compose up -d
-
-# 4. Configuration
-cp .env.example .env
-# Add your USAJobs API key to .env
-
-# 5. Run & Test
-python src/etl.py
-python run_tests.py
-```
-
-### Production Deployment
-```bash
-# 1. Prerequisites
-gcloud auth login
-gcloud auth application-default login
-
-# 2. Configure project
-cd terraform
-cp terraform.tfvars.example terraform.tfvars
-# Edit with your GCP project details
-
-# 3. Deploy infrastructure
-terraform init
-terraform apply
-
-# 4. Verify deployment
-gcloud run jobs execute usajobs-etl --region=europe-west2
-```
+_Note: Comprehensive test suite was generated with Claude AI assistance with minimal manual intervention._
 
 ### Troubleshooting
 
 **Local Issues:**
+
 - Database: `docker-compose logs postgres`
 - API: `curl -H "Authorization-Key: $API_KEY" "https://data.usajobs.gov/api/search?Keyword=data%20engineering"`
 
 **Production Issues:**
+
 - Logs: `gcloud logging read 'resource.type=cloud_run_job'`
 - Job status: `gcloud run jobs executions list --job=usajobs-etl --region=europe-west2`
 - Secrets: `gcloud secrets list`
 
 ## Development Notes
 
-### Phase 1 Implementation Details
+### Current Implementation Features
 
-- Single-file ETL script for simplicity
-- Hardcoded configuration (will be externalized in Phase 2)
-- Basic error handling with console output
-- First page of API results only
-- Simple duplicate handling with ON CONFLICT
+- ✅ Environment-driven configuration via .env files
+- ✅ Comprehensive error handling with exponential backoff retry logic
+- ✅ Multi-page pagination support (configurable page limits)
+- ✅ Structured logging with configurable levels
+- ✅ Comprehensive test suite (unit, integration, database)
+- ✅ Production cloud deployment with Terraform
+- ✅ Rate limiting and respectful API usage
+- ✅ Database schema with proper indexing
 
-### Known Limitations (Phase 1)
+### Areas for Future Enhancement
 
-- No pagination handling (processes first page only)
-- Limited error handling and retry logic
-- No structured logging
-- Hardcoded configuration values
-- No automated tests
+- Modular architecture with separate classes for API, database, and transformation logic
+- Parallel processing for large datasets
+- Data quality validation and monitoring
+- Incremental ETL with change detection
 
-These limitations will be addressed in subsequent phases.
+## 🏛️ Design Decisions
 
-## Next Steps
+### Architecture Choices
 
-After Phase 1 completion:
+- **Single ETL file** - Appropriate for scope (one API, one database, ~22 records)
+- **Sequential processing** - Sufficient for current dataset size
+- **No orchestration tool** - Cloud Scheduler provides adequate scheduling
+- **External database** - Supabase demonstrates cost optimization and avoids vendor lock-in
 
-1. Commit changes: `git commit -m "Phase 1: Basic ETL with local database"`
-2. Begin Phase 2: Production Hardening with modular architecture
-3. Add comprehensive error handling and retry logic
-4. Implement proper configuration management
+### Database Configuration
+
+- **Local**: PostgreSQL via Docker Compose
+- **Production**: Supabase free tier (no GCP costs)
+- **No connection pooling** - Single daily batch job doesn't require it
+
+### Security Model
+
+- **Development**: `.env` files for convenience
+- **Production**: Google Secret Manager, Cloud SQL Proxy, service accounts with minimal permissions
+
+### Scalability Considerations
+
+- Pagination limited to 5 pages (analysis showed only 22 total results)
+- Parallel processing prepared but disabled (ENABLE_PARALLEL=false)
+- Ready to scale with larger datasets when needed
 
 ## License
 

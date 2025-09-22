@@ -11,7 +11,6 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Persist data even when container is removed
       - postgres_data:/var/lib/postgresql/data
     networks:
       - postgres_network
@@ -24,19 +23,6 @@ services:
       start_period: 60s
 
 
-  # Optional: Your Python app (if you want to containerize it too)
-  # python_app:
-  #   build: .
-  #   container_name: usa_jobs_app
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:password@postgres:5432/usa_jobs
-  #   volumes:
-  #     - .:/app
-  #   networks:
-  #     - postgres_network
-  #   depends_on:
-  #     - postgres
-  #   command: python app.py
 
 volumes:
   postgres_data:
