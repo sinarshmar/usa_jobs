@@ -16,8 +16,6 @@ Thumbs.db
 
 # Development files
 docker-compose.yml
-init_scripts/
-requirements/
 
 # Documentation
 README.md
@@ -25,4 +23,18 @@ README.md
 
 # Environment files (use Cloud Run env vars instead)
 .env
-.env.example
+
+# Python
+__pycache__/
+*.pyc
+
+.env
+
+.venv/
+.kiro/
+.vscode/
+requirements/
+
+test.ipynb
+test_etl.py
+api_analysis.py
